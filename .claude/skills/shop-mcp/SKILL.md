@@ -8,12 +8,10 @@ description: How CartTrap calls Shopify's Shop MCP (shop.dev) over JSON-RPC - to
 Endpoint: `https://mcp.shop.com/` (env `SHOP_MCP_URL`). Speaks MCP (2026-07-28) + UCP over HTTPS. Anonymous calls work for catalog search and carts; Shop sign-in is only needed for `complete_checkout`, account, orders and spend requests completion.
 
 ## Request shape
-```python
-payload = {"jsonrpc": "2.0", "id": next_id(), "method": "tools/call",
-           "params": {"name": tool, "arguments": args}}
-r = httpx.post(SHOP_MCP_URL, json=payload, timeout=15)
-```
-First call `tools/list` once and save it to `backend/fixtures/shop/tools_list.json` so argument schemas are on disk. Don't guess argument names; read them from that file.
+Always go through `backend/shop_mcp.py` (`ShopMCP().call(tool, args)` or its wrappers). The server needs
+`MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name` headers and `params._meta`, and arguments are nested
+(`{"catalog": {...}}`). Verified shapes and gotchas: `docs/notes-apis.md`. Full schemas are saved in
+`backend/fixtures/shop/tools_list.json`; don't guess argument names, read them from that file.
 
 ## Tools (17)
 | Group | Tools | CartTrap use |
@@ -27,6 +25,7 @@ First call `tools/list` once and save it to `backend/fixtures/shop/tools_list.js
 
 ## Rules
 - `complete_checkout` and `complete_spend_request` raise `ForbiddenToolError` in `shop_mcp.py`. Keep it that way.
-- `USE_FIXTURES=1` replays from `backend/fixtures/shop/<tool>/<sha1(args)>.json`; `RECORD_FIXTURES=1` writes them.
-- Cache catalog calls in eval; back off on 429 (0.5 s, 1 s, 2 s).
+- `create_spend_request` and `create_spend_permission` are always intercepted, never sent.
+- Amounts are integer minor units (2100 = $21.00).
+- No fixture replay / retry ladder (cut for time); calls go live.
 - Product JSON from `get_product` is the **truth ledger** for the firewall and fraud card: pass it whole, don't summarise it.

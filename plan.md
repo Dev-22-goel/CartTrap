@@ -107,25 +107,25 @@
 **Interfaces:**
 - Consumes: `RuleSet`, `Intent`, `Media`, `Claims`, `ToolCall`, `config`.
 - Produces: `tier_for(call: ToolCall, cart_total: float) -> str`; `gate(action_probs: dict[str,float], results: list[ProbeResult], probes: list[Probe], tier: str, severity: int) -> str` (rules in architecture §0 decision 5); `async decide(intent: Intent, media: list[Media], product_json: dict|None, proposed: ToolCall, claims: Claims|None, rules: RuleSet, cart_total: float) -> Verdict` — one call to the configured backend (`decisions` or `json_llm`), images at `ultra_high`, timeout `firewall_timeout_ms`.
-- [ ] Step 1: Unit tests (mocked backend): `test_gate_all_low_probes_approves`, `test_gate_injection_fires_hard_block`, `test_gate_pack_lie_only_escalates`, `test_gate_low_tier_relaxes_promo`, `test_tier_spend_request`, `test_tier_without_budget`, `test_decide_timeout_fails_closed` (→ hard_block, `error` set), `test_decide_malformed_fails_closed`, `test_decide_without_product_skips_mismatch` (pack_lie probes not sent when `product_json is None`).
-- [ ] Step 2: FAIL. Step 3: implement; wrap the real SDK call shape from `docs/notes-apis.md` in one private function per backend.
-- [ ] Step 4: Unit PASS; live: `sticky_note.png` → `hard_block_quarantine`, `benign_blurry.jpg` and `promo_banner.jpg` (cart $20) → `approve_checkout`; log p50 latency of 10 calls.
-- [ ] Step 5: Commit `feat: firewall decide + gate`.
+- [x] Step 1: Unit tests (mocked backend): `test_gate_all_low_probes_approves`, `test_gate_injection_fires_hard_block`, `test_gate_pack_lie_only_escalates`, `test_gate_low_tier_relaxes_promo`, `test_tier_spend_request`, `test_tier_without_budget`, `test_decide_timeout_fails_closed` (→ hard_block, `error` set), `test_decide_malformed_fails_closed`, `test_decide_without_product_skips_mismatch` (pack_lie probes not sent when `product_json is None`).
+- [x] Step 2: FAIL. Step 3: implement; wrap the real SDK call shape from `docs/notes-apis.md` in one private function per backend. *(Decisions call wired to the official v1beta shape; not yet run live.)*
+- [ ] Step 4: Unit PASS *(done: 42 tests)*; live: `sticky_note.png` → `hard_block_quarantine`, `benign_blurry.jpg` and `promo_banner.jpg` (cart $20) → `approve_checkout`; log p50 latency of 10 calls.
+- [x] Step 5: Commit `feat: firewall decide + gate`.
 
 ### Task 8: Argon perception — owner: firewall-engineer (parallel with 7)
 **Files:** Create `backend/perception_argon.py`, `backend/prompts/argon.md`, `tests/test_perception.py`
 **Interfaces:** Produces `async perceive(media: list[Media]) -> Claims` (structured output, no tools; on error returns `Claims(..., notes="perception_error")`).
-- [ ] Step 1: Tests: `test_perceive_error_returns_empty_claims` (mock raises); live `test_sticky_note_detected` (`instructions_detected is True`, visible_text contains "budget" case-insensitive).
-- [ ] Step 2: FAIL. Step 3: implement. Step 4: PASS. Step 5: Commit `feat: argon perception`.
+- [x] Step 1: Tests: `test_perceive_error_returns_empty_claims` (mock raises); live `test_sticky_note_detected` (`instructions_detected is True`, visible_text contains "budget" case-insensitive).
+- [x] Step 2: FAIL. Step 3: implement. Step 4: PASS *(unit; live `test_sticky_note_detected` pending key + golden image)*. Step 5: Commit `feat: argon perception`.
 
 ### Task 9: Guarded shopper — owner: firewall-engineer (12:00)
 **Files:** Create `backend/guarded_shopper.py`, `tests/test_guarded.py`; modify `backend/main.py` to wire Tasks 5 + 9 into `/api/run`
 **Interfaces:**
 - Consumes: `shopper_loop` (Task 5), `perceive`, `decide`, `RuleStore`, `ShopMCP`.
 - Produces: `GuardedResult(verdicts: list[Verdict], blocked_call: ToolCall|None, approved_calls: list[ToolCall], claims: Claims|None, product_json: dict|None)`; `async run_guarded(intent, media, product_ref, bus, run_id, shop, rules: RuleStore) -> GuardedResult`. Argon starts concurrently with the first search step; each state-changing call awaits `decide`; non-approve stops the loop. Product context per architecture §0 decision 7.
-- [ ] Step 1: Tests (fakes): `test_guarded_blocks_and_stops` (decide → hard_block; no further tool calls; `verdict` event emitted), `test_guarded_checks_every_state_change` (cart then checkout → 2 decide calls), `test_argon_runs_concurrently` (perceive and first search overlap in time).
-- [ ] Step 2: FAIL. Step 3: implement. Step 4: PASS; live: `curl -N` on a sticky-note run shows victim `intercepted` + guarded `verdict: hard_block_quarantine`.
-- [ ] Step 5: Commit `feat: guarded shopper wired into run API` — **walking skeleton done (12:45).**
+- [x] Step 1: Tests (fakes): `test_guarded_blocks_and_stops` (decide → hard_block; no further tool calls; `verdict` event emitted), `test_guarded_checks_every_state_change` (cart then checkout → 2 decide calls), `test_argon_runs_concurrently` (perceive and first search overlap in time).
+- [x] Step 2: FAIL. Step 3: implement. Step 4: PASS *(offline; live `curl -N` pending a key)*; live: `curl -N` on a sticky-note run shows victim `intercepted` + guarded `verdict: hard_block_quarantine`.
+- [x] Step 5: Commit `feat: guarded shopper wired into run API` — **walking skeleton done (12:45).**
 
 ### Task 10: Defender — fraud card + safe swap — owner: defender-engineer (12:45)
 **Files:** Create `backend/defender_neon.py`, `backend/prompts/neon_fraud_card.md`, `tests/test_defender.py`; modify `guarded_shopper.py` to call it on non-approve
