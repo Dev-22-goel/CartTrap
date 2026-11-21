@@ -26,6 +26,8 @@ A file changes lane **only** when Adish merges the Codex branch into `adish` and
 
 1. Edit only files your lane owns right now. If you need a change elsewhere, write it into your status (Codex: `handoff/codex-status.md`) and stop.
 2. Codex runs in `..\CartTrap-codex` on branch `m4-codex`, with `-s workspace-write`. Claude runs in `CartTrap` on `adish`. Neither pushes to `main`.
+   - **Codex does not run git.** Its sandbox makes `.git` read-only on Windows. Codex edits files and writes `handoff/codex-status.md`; Claude commits in `CartTrap-codex` at each merge point.
+   - **Codex runs Python from `.venv`:** `.venv\Scripts\python -m pytest ...`. The sandbox can't see Adish's user-level packages.
 3. **After 2:30 PM, nobody edits `eval/cases/**`.** After the holdout is built, nobody edits `eval/holdout/**`.
 4. Skills for Codex: read them by path, e.g. `.claude/skills/firewall-rules/SKILL.md`, `.claude/skills/attack-forge/SKILL.md`, `.claude/skills/shop-mcp/SKILL.md`, `.claude/skills/run-eval/SKILL.md`.
 5. When an ADR in `docs/decisions/m4/` governs your files, it's your spec: meet its Verification checklist.
