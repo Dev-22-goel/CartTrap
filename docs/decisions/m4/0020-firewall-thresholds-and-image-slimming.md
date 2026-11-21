@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by Member 2 golden-set tuning (Udaya c7416a2, 05eb3eb)
 date: 2026-11-21
 decision-makers: "Adish (Member 4, doing Member 2's tuning per ADR 0019)"
 informed: "Member 2 (owner of rules.json and the firewall)"
