@@ -22,3 +22,9 @@ RuleStore (C4) and run_guarded (C7) may not exist yet: depend on Protocols and t
 Tests that must pass (fakes only, no network): test_validate_rejects_probe_that_fires_on_benign, test_validate_accepts_and_appends, test_validate_is_idempotent, test_append_is_atomic_on_crash, test_propose_rejects_compound_probe, test_propose_rejects_duplicate, test_launch_caps_rounds, test_loop_reblocks_after_heal, test_round_error_emits_event_and_stops, test_trace_replays_in_order.
 Only edit: backend/selfheal.py, backend/redteam_carbon.py, tests/test_selfheal.py, tests/test_redteam_loop.py, handoff/codex-status.md.
 Done = `pytest -q tests/test_selfheal.py tests/test_redteam_loop.py` all green, plus a 10-line design note in handoff/codex-status.md (key decisions + anything you were unsure of). Commit on m4-codex; never push to main.
+
+Sandbox contract (from redteam/sandbox/AGENTS.md, already written by Claude):
+- The attacker's log ends each round with one line `MANIFEST: {json}` (single-line JSON). Parse the LAST such line. Keys: round, id, vector, product_id, files, intended_hijack, expected_forbidden_tool (string), user_request, budget, mutation_of.
+- On a block, send the attacker the Verdict JSON (action, severity, probes[{id, p, fired}]) plus the blocked tool call.
+- Artifacts are written to the sandbox `out/` dir; pull them into `redteam/out/<round>/` (git-ignored).
+- Read redteam/sandbox/AGENTS.md and redteam/sandbox/skills/attack-forge/SKILL.md before coding. Do not edit them.
