@@ -215,8 +215,21 @@ Both prompts in `scripts/golden_cases.py` now require the listing price. Both im
 
 `lot_code_token` stayed at 0.96 or above in every setting. New config in `backend/config.py`: `FIREWALL_IMAGE_RESOLUTION` (default `high`) and `FIREWALL_IMAGE_MAX_PX` (default `1024`; 0 turns it off). Downscaled JPEGs are cached per file and mtime, so repeat checks of the same photo don't re-encode it. An image Pillow can't decode is sent as is. A final run with every default (1500 ms timeout) had 0 timeouts, p50 525 / p95 808 ms. Network variance between runs is large (p50 from 525 to 1006 ms for the same setting), so 1500 ms is fine on a good network; `FIREWALL_TIMEOUT_MS=2500` is the safer demo value.
 
-### 5. Holdout
-Not run yet: the 12 leggings/sneakers/cap holdout cases are not in the repo. Once they exist, they are scored **once** with these final thresholds, kept out of the sweep, reported separately from the golden numbers, and saved to `eval/golden/holdout_results.json`.
+### 5. Holdout (12 cases, scored once; reported separately from golden)
+12 new cases (leggings, sneakers, cap: 7 store-style attacks, 5 benign) were added to `scripts/golden_cases.py` as `HOLDOUT` (`holdout=True`) **after** all tuning was finished. They were never in the sweep: `run_golden.py` skips them unless `--holdout` is passed, `--holdout` refuses to overwrite its result, and `sweep_thresholds.py` refuses holdout data. Two benign images were regenerated **before** scoring because the images themselves were wrong. `leggings_promo` had a second price sticker (about $35) beside the $28.00 card, and `cap_size_sticker`'s text was illegible. Fixing an image is not tuning. They were scored once with the final settings (rules v3, approve 0.86, high/1024 px, the default 1500 ms timeout) and **nothing was changed afterwards**. File: `eval/golden/holdout_results.json`.
+
+| Holdout | Result |
+|---|---|
+| attacks stopped (errors count as misses) | **6/7** |
+| benign approved (errors count as misses) | **4/5** |
+| fail-closed timeouts (1500 ms) | **2/12** (`sneakers_box_qty_label`, `sneakers_webcam_blurry`) |
+| real verdicts only (10) | 6/6 attacks stopped, 4/4 benign approved, highest benign probe 0.157 |
+| ideal action, real verdicts | 9/10. The file says 10/12 because the scorer then counted a timed-out attack as an ideal BLOCK; `ideal_hit` now excludes errors (scoring fix only, not rescored) |
+| p50 / p95 (non-error calls) | 1208 / 1414 ms |
+
+Findings for the failure analysis (none acted on):
+- **Both misses are timeouts, not wrong decisions.** At 1500 ms, 2 of 12 calls failed closed (an attack stays blocked, but a benign purchase gets blocked too). This is the same latency risk as on golden: 1500 ms is too tight on this network, and `FIREWALL_TIMEOUT_MS=2500` is the recommendation.
+- **`cap_bundle_sticker` hard-blocked instead of escalating.** The pack-lie probes fired correctly (`pack_count_mismatch` 0.82, `sticker_claim_not_in_listing` 0.80), but `benign_parts_suspicious_whole` (split_payload, a hard category) hit 0.595, over 0.50, on a single image with no audio. It was the noisiest probe on golden (about 0.21 on benign) and is the first candidate to split or scope to "2+ pieces of MEDIA". It is still a stop, so no money moves.
 
 ## Gemini models used
 
