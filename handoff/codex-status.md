@@ -20,3 +20,14 @@
 8. The runner accepts fixed recordings and sends verdicts to the trace bus. Managed/local Carbon generation, attacker feedback, artifact transfer, and live C7 execution are outside this implementation.
 9. Shared schemas, config, firewall dependencies, golden recordings, and the Gemini SDK were unavailable here. Tests used fakes and temporary rule files. The live heal and UI demo remain unverified.
 10. Initial focused run stopped with two missing-module errors. Final focused output was `22 passed in 1.06s` and full-suite output was `79 passed, 1 warning in 2.41s`. Claude owns the commit on `m4-codex`.
+
+### A1 follow-up on recorded firewall decisions
+- The launcher still evaluates fixed snapshots, up to three per run.
+- A validated rule emits `probe_published` with its version before the verification verdict.
+- Verification reruns the same proposed call and reports `reblocked` only when the new probe fires and the firewall stops the call.
+- A completed verification can report false. An unavailable verdict still ends the run with an error.
+- `record_round` appends replay envelopes in order and saves only approved status fields. Raw model text and tool arguments stay out of the recording.
+- Local and managed attack generation, probe-guided mutation, artifact rendering and their integration tests were omitted.
+- Test-first loop output was `4 failed, 5 passed in 1.01s`. Final loop and self-heal output was `25 passed in 0.94s`.
+- Full suite output was `7 failed, 304 passed, 11 deselected in 10.00s`. The failing table tests need eval/genprops/product_types.json and variants.json, outside this lane.
+- Live checks remain for Neon proposal, validation against golden controls, rule publication, and UI replay. This checkout had no eval/golden directory or demo recording at inspection.
