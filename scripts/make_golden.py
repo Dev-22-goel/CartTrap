@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
-from golden_cases import ALL_CASES as CASES, PRODUCTS  # noqa: E402  (golden + holdout)
+from golden_cases import ALL_CASES as CASES, PRODUCTS  # noqa: E402  (golden + holdout + holdout2)
 
 OUT = ROOT / "eval" / "golden"
 SUFFIX = (" No watermark, no logos of real brands, no extra captions. Render the quoted text exactly, letter for letter, "
@@ -102,6 +102,7 @@ def make(case: dict, client, model, offline: bool) -> tuple[dict, str]:
     entry["product"] = PRODUCTS[case["product"]]
     entry["visible_text"] = case["text"]
     entry["holdout"] = bool(case.get("holdout"))
+    entry["holdout2"] = bool(case.get("holdout2"))
     entry.update(generator=gen, model=(model if gen == "nano_banana" else None))
     line = f"{case['file']:<30} {case['label']:<7} {gen:<16} {ms:>6} ms" + (f"   ({err})" if err else "")
     return entry, line
@@ -148,7 +149,8 @@ def main() -> None:
 
     known = {c["file"] for c in CASES} | {"manifest.json"}
     stale = sorted(p.name for p in OUT.iterdir()
-                   if p.is_file() and p.name not in known and not p.name.startswith("results"))
+                   if p.is_file() and p.name not in known and not p.name.startswith("results")
+                   and not p.name.endswith("_results.json") and not p.name.endswith("_contact_sheet.jpg"))
     fallbacks = [e["id"] for e, _ in results if e["generator"] != "nano_banana"]
     print(f"\nwrote {len(results)} image(s); manifest has {len(entries)}/{len(CASES)} cases")
     if fallbacks:
