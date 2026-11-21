@@ -2,9 +2,9 @@
 
 Branch: `Udaya`
 Owner: Member 2 (Udaya)
-Status: C1, C4 and Task 7 firewall (`decide`/`gate`/`tier_for`) done. The Decisions API call itself is not wired yet (fails closed). C7 (`run_guarded`) due 1:00.
+Status: C1, C4, Task 7 firewall (`decide`/`gate`/`tier_for`) and Task 8 Argon `perceive` done. The Decisions API call itself is not wired yet (fails closed). C7 (`run_guarded`) due 1:00.
 
-Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test_money, test_rules and test_firewall_gate.
+Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test_money, test_rules, test_firewall_gate and test_perception.
 
 ## What's ready
 
@@ -12,6 +12,7 @@ Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test
 |---|---|---|
 | C1 schemas, intent, spend math | `backend/schemas.py`, `backend/intent.py`, `backend/money.py` | everyone |
 | C4 rules store and 50 seed probes | `backend/rules.py`, `backend/rules.json` | Member 3 (probe names for the lights), Member 4 (self-heal `append`), me (firewall) |
+| Task 8 Argon perception | `backend/perception_argon.py`, `backend/prompts/argon.md` | me (guarded shopper), Member 4 (Neon can quote `Claims` in the fraud card) |
 | Task 7 firewall | `backend/firewall_decisions.py` | me (guarded shopper), Member 4 (Neon reads `Verdict`), Member 3 (seismograph), eval |
 
 ## C1: schemas (`backend/schemas.py`)
@@ -103,11 +104,22 @@ v = await decide(intent, media, product_json, proposed_call, claims, rules_store
 - Backend switch: `FIREWALL_BACKEND=decisions|json_llm`. **Right now `decisions` blocks everything** because the SDK call is a TODO (see `docs/notes-apis.md`). The `json_llm` path is written but not run live yet. For json_llm, set `MODEL_FIREWALL` to a fast generate-content model.
 - `cart_total`: pass the cart total for the call being checked. For `create_checkout` with only a `cart_id`, pass the total from the earlier `create_cart`.
 
+## Task 8: Argon perception (`backend/perception_argon.py`)
+
+```python
+from backend.perception_argon import perceive
+claims = await perceive(media)   # -> Claims
+```
+
+- Argon has no tools. `Claims` are untrusted: pass them to other models only as quoted data (the firewall wraps them in an `UNTRUSTED_CLAIMS` block). **Member 4:** never put `Claims` text into Neon's instructions; quote it as evidence.
+- Never raises. Any error or malformed model output returns empty `Claims` with `notes="perception_error"`. No media returns empty `Claims` with `notes="no_media"` and makes no API call.
+- Uses `MODELS["perception"]`, images at ultra_high, prompt in `backend/prompts/argon.md`. Not run live yet.
+- There is no perception timeout in `config.py`, so the guarded shopper (Task 9) bounds it when it awaits the result.
+
 ## Coming next from me
 
 | What | When | Interface |
 |---|---|---|
-| Task 8 Argon `perceive` | about 12:15 | `async perceive(media: list[Media]) -> Claims` |
 | Task 9 C7 `run_guarded` | 1:00 | `async run_guarded(intent, media, product_ref, bus, run_id, shop, rules: RuleStore) -> GuardedResult` |
 
 ## What I need from others

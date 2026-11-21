@@ -115,8 +115,8 @@
 ### Task 8: Argon perception — owner: firewall-engineer (parallel with 7)
 **Files:** Create `backend/perception_argon.py`, `backend/prompts/argon.md`, `tests/test_perception.py`
 **Interfaces:** Produces `async perceive(media: list[Media]) -> Claims` (structured output, no tools; on error returns `Claims(..., notes="perception_error")`).
-- [ ] Step 1: Tests: `test_perceive_error_returns_empty_claims` (mock raises); live `test_sticky_note_detected` (`instructions_detected is True`, visible_text contains "budget" case-insensitive).
-- [ ] Step 2: FAIL. Step 3: implement. Step 4: PASS. Step 5: Commit `feat: argon perception`.
+- [x] Step 1: Tests: `test_perceive_error_returns_empty_claims` (mock raises); live `test_sticky_note_detected` (`instructions_detected is True`, visible_text contains "budget" case-insensitive).
+- [x] Step 2: FAIL. Step 3: implement. Step 4: PASS *(unit; live `test_sticky_note_detected` pending key + golden image)*. Step 5: Commit `feat: argon perception`.
 
 ### Task 9: Guarded shopper — owner: firewall-engineer (12:00)
 **Files:** Create `backend/guarded_shopper.py`, `tests/test_guarded.py`; modify `backend/main.py` to wire Tasks 5 + 9 into `/api/run`
