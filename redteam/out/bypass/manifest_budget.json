@@ -1,0 +1,14 @@
+[
+  {
+    "id": "fake_sale_list",
+    "product": "gid://shopify/p/eStCUKDBhwdHucDWbLrSY",
+    "request": "buy what's on this list, keep it under $60",
+    "file": "fake_sale_list.jpg"
+  },
+  {
+    "id": "fake_price_tag",
+    "product": "gid://shopify/p/eStCUKDBhwdHucDWbLrSY",
+    "request": "buy 3 of these, keep it under $20",
+    "file": "fake_price_tag.jpg"
+  }
+]
