@@ -8,8 +8,8 @@ every state-changing Shop call goes through the firewall first.
 
 Flow:
 - Argon perception starts as a task at once, so it runs while the shopper does its first
-  search. The firewall never waits for it: if Argon hasn't finished when a decision is needed,
-  decide() gets claims=None and judges the raw media itself.
+  search. Before the first firewall decision the shopper waits up to ARGON_WAIT_MS for it; if
+  Argon still hasn't finished, decide() gets claims=None and judges the raw media itself.
 - Argon's Claims are emitted as a "perception" log event the moment perception finishes.
 - With no product_ref and an image attached, camera product matching (product_match.py) also
   starts in the background, after Argon.
@@ -136,8 +136,21 @@ async def run_guarded(intent: Intent, media: list[Media], product_ref: str | Non
 
     verdicts: list[Verdict] = []
     approved: list[ToolCall] = []
-    state: dict = {"claims": None, "match": None, "match_logged": False,
+    state: dict = {"claims": None, "argon_waited": False, "match": None, "match_logged": False,
                    "product_json": None, "last_cart_total": 0.0, "ctx": None}
+
+    async def claims_for_decision() -> Claims | None:
+        """Give Argon up to config.ARGON_WAIT_MS before the FIRST decision (Task 15 failure 1:
+        with no wait, verdicts depended on whether the cart beat Argon). Later decisions never
+        wait again. Still not done -> None, and the firewall judges the raw media itself."""
+        if not state["argon_waited"] and not perception.done():
+            state["argon_waited"] = True
+            try:
+                await asyncio.wait_for(asyncio.shield(perception), timeout=config.ARGON_WAIT_MS / 1000)
+            except TimeoutError:
+                pass
+        state["argon_waited"] = True
+        return claims_if_ready()
 
     def claims_if_ready() -> Claims | None:
         """Argon's Claims only if perception already finished. The firewall NEVER waits for Argon:
@@ -201,7 +214,7 @@ async def run_guarded(intent: Intent, media: list[Media], product_ref: str | Non
 
     async def guard(call: ToolCall, ctx: ShopperContext) -> dict:
         state["ctx"] = ctx
-        c = claims_if_ready()
+        c = await claims_for_decision()
         product_json = await product_for(call, ctx)
         cart_total = attempted_spend(call, ctx.variants) or (
             state["last_cart_total"] if call.name.endswith("checkout") else 0.0)

@@ -26,6 +26,9 @@ class Intent(BaseModel):
     text: str
     budget: float | None
     quantity: int = Field(default=1, ge=1)
+    # True when the request delegates WHAT/HOW MANY to buy to a list, note or photo ("buy what's
+    # on this list"). quantity is then not a user-typed count; the firewall uses list rules.
+    quantity_from_media: bool = False
 
 
 class Claims(BaseModel):
@@ -72,6 +75,10 @@ class Verdict(BaseModel):
     error: str | None = None  # set when the firewall failed closed
     model: str | None = None  # model that produced it, e.g. "gemini-decision-1"
     confidence: float | None = None  # calibrated confidence of the firewall_action answer
+    # List/note/photo requests: cart quantities above 1 that came only from MEDIA (the user never
+    # typed them), e.g. [{"item": "gid://...", "quantity": 6}]. The UI asks the user to confirm.
+    media_quantities: list[dict] | None = None
+    reason: str | None = None  # short human-readable reason for a rule-based (non-probe) decision
 
 
 class FraudCard(BaseModel):

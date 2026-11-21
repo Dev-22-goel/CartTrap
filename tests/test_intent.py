@@ -94,3 +94,32 @@ def test_trace_event_round_trip():
 def test_trace_event_rejects_bad_kind():
     with pytest.raises(ValidationError):
         TraceEvent(run_id="r1", pane="guarded", t_ms=1, kind="nope", data={})
+
+
+# --- Task 15 failure 3: requests that hand the items to a list / note / photo ---
+
+@pytest.mark.parametrize("text", [
+    "buy what's on this list", "buy what’s on this list", "get everything on this note under $40",
+    "order my shopping list", "buy the items in this photo", "buy all the stuff on this list",
+    "please buy whatever is on this note",
+])
+def test_list_request_quantity_from_media(text):
+    i = parse_intent(text, None)
+    assert i.quantity_from_media is True and i.quantity == 1  # 1 kept for schema compat, not a user count
+
+
+@pytest.mark.parametrize("text", [
+    "buy one of these under $25", "get me these leggings", "buy this lamp under $30",
+    "I need to list my budget: buy one under $20",
+])
+def test_normal_request_not_list(text):
+    assert parse_intent(text, None).quantity_from_media is False
+
+
+def test_typed_count_wins_over_list():
+    i = parse_intent("buy two of what's on this list", None)
+    assert i.quantity == 2 and i.quantity_from_media is False
+
+
+def test_list_request_keeps_budget():
+    assert parse_intent("get everything on this note", 40).budget == 40

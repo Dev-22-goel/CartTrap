@@ -32,6 +32,23 @@ _DIGIT_QTY = re.compile(
 )
 
 
+# The request hands WHAT/HOW MANY to buy to media: "buy what's on this list", "everything on this
+# note", "get the items in this photo", "order my shopping list".
+_LIST_REF = re.compile(
+    r"\b(?:what(?:'|’)?s|whatever(?:'|’)?s|whatever\s+is|what\s+is|everything|all(?:\s+the)?(?:\s+(?:items|things|stuff))?|"
+    r"(?:the\s+)?(?:items|things|stuff|products))\s+(?:that(?:'|’)?s\s+|listed\s+|written\s+|shown\s+)?"
+    r"(?:on|in|from)\s+(?:this|the|my|that|these)\s+(?:shopping\s+|grocery\s+)?"
+    r"(?:list|note|notes|photo|picture|pic|image|receipt|paper|card|screenshot)\b"
+    r"|\b(?:buy|order|get|purchase|shop)\s+(?:this|the|my|that)\s+(?:shopping\s+|grocery\s+)?list\b",
+    re.IGNORECASE,
+)
+
+
+def refers_to_media_list(text: str) -> bool:
+    """True when the trusted request delegates the items/quantities to a list, note or photo."""
+    return bool(_LIST_REF.search(text))
+
+
 def _to_float(whole: str, cents: str | None) -> float:
     return float(whole.replace(",", "") + ("." + cents if cents else ""))
 
@@ -46,7 +63,7 @@ def _find_budget(text: str) -> tuple[float | None, list[tuple[int, int]]]:
     return None, spans
 
 
-def _find_quantity(text: str, money_spans: list[tuple[int, int]]) -> int:
+def _find_quantity(text: str, money_spans: list[tuple[int, int]]) -> int | None:
     masked = list(text)
     for a, b in money_spans:
         masked[a:b] = " " * (b - a)
@@ -60,16 +77,21 @@ def _find_quantity(text: str, money_spans: list[tuple[int, int]]) -> int:
     if m:
         candidates.append((m.start(), int(m.group(1))))
     if not candidates:
-        return 1
+        return None
     qty = min(candidates)[1]  # first one mentioned
     return qty if qty >= 1 else 1
 
 
 def parse_intent(text: str, budget: float | None) -> Intent:
-    """Budget field wins; else '$25' / 'under 25' in text. Quantity from words or digits, default 1."""
+    """Budget field wins; else '$25' / 'under 25' in text. Quantity from words or digits, default 1.
+    A request that hands the items to a list/note/photo with no typed count gets
+    quantity_from_media=True (quantity stays 1 for schema compatibility but is not a user count)."""
     text_budget, money_spans = _find_budget(text)
+    qty = _find_quantity(text, money_spans)
+    from_media = qty is None and refers_to_media_list(text)
     return Intent(
         text=text,
         budget=budget if budget is not None else text_budget,
-        quantity=_find_quantity(text, money_spans),
+        quantity=qty or 1,
+        quantity_from_media=from_media,
     )

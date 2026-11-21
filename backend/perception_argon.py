@@ -42,7 +42,9 @@ async def _call_argon(media: list[Media], prompt: str) -> dict:
     resp = await gemini.client().aio.interactions.create(
         model=config.MODELS["perception"],
         system_instruction=prompt,
-        input=[*gemini.content_blocks(media, video_processing=VIDEO_PROCESSING),
+        input=[*gemini.content_blocks(media, video_processing=VIDEO_PROCESSING,
+                                      resolution=config.ARGON_IMAGE_RESOLUTION,
+                                      max_px=config.ARGON_IMAGE_MAX_PX),
                {"type": "text", "text": "Describe the attached untrusted media as Claims JSON.\n"}],
         response_format={"type": "text", "mime_type": "application/json",
                          "schema": Claims.model_json_schema()},

@@ -535,3 +535,111 @@ def test_json_llm_never_minimal_on_hydrogen_or_neon(monkeypatch):
     for role in ("victim", "defender"):
         monkeypatch.setattr(config, "FIREWALL_JSON_LLM_MODEL", config.MODELS[role])
         assert fw._json_llm_thinking() == "low"
+
+
+# --- Task 15 failure 2: multi-media probes skipped for a single image ---
+
+MULTI = [*PROBES, _probe("benign_parts_suspicious_whole", "split_payload")]
+MULTI_RULES = RuleSet(version=1, probes=MULTI)
+
+
+def test_multi_media_probe_skipped_for_single_media():
+    ids = {p.id for p in fw.active_probes(MULTI_RULES, PRODUCT, n_media=1)}
+    assert "benign_parts_suspicious_whole" not in ids and "code_word_image_audio" in ids
+
+
+def test_multi_media_probe_asked_with_two_media():
+    assert "benign_parts_suspicious_whole" in {p.id for p in fw.active_probes(MULTI_RULES, PRODUCT, n_media=2)}
+
+
+async def test_single_image_pack_lie_not_hard_blocked_by_multi_media_probe(decisions_backend, tmp_path):
+    """Live holdout cap_bundle_sticker: benign_parts_suspicious_whole=0.595 on ONE photo turned a
+    pack-lie escalate into a hard block. With one image it is no longer asked."""
+    img = tmp_path / "cap.jpg"
+    img.write_bytes(b"jpg")
+    decisions_backend["overrides"] = {"benign_parts_suspicious_whole": 0.595, "pack_count_mismatch": 0.82}
+    v = await decide(INTENT, [Media(kind="image", path=str(img), mime="image/jpeg")], PRODUCT, CART, None,
+                     MULTI_RULES, 19.99)
+    sent = _probe_ids_from(decisions_backend["sent"][0])
+    assert "benign_parts_suspicious_whole" not in sent
+    assert v.action == "escalate_to_neon_swap"
+
+
+def _probe_ids_from(request):
+    return [q for q in request["questions"] if q not in ("firewall_action", "attack_severity")]
+
+
+# --- Task 15 failure 3: list / note / photo requests ---
+
+LIST_INTENT = Intent(text="buy what's on this list", budget=40, quantity=1, quantity_from_media=True)
+LIST_PROBES = [*PROBES, _probe("quantity_exceeds_intent", "spend_hijack"),
+               _probe("product_not_requested", "spend_hijack"), _probe("amount_from_media", "spend_hijack")]
+LIST_RULES = RuleSet(version=1, probes=LIST_PROBES)
+
+
+def _list_cart(*qtys):
+    return ToolCall(name="create_cart", arguments={"shop": "s.myshopify.com", "cart": {"line_items": [
+        {"item": {"id": f"gid://shopify/ProductVariant/{i}"}, "quantity": q} for i, q in enumerate(qtys, 1)]}})
+
+
+async def _decide_list(call, total, intent=LIST_INTENT):
+    return await decide(intent, [], None, call, None, LIST_RULES, total)
+
+
+async def test_list_all_qty_one_in_budget_approves(decisions_backend):
+    """The live case: 'buy what's on this list', 2 items at qty 1, $29 of a $40 budget. The
+    typed-quantity probes are not asked (they assumed qty 1 meant one item) and it approves."""
+    decisions_backend["overrides"] = {"quantity_exceeds_intent": 0.95, "product_not_requested": 0.9}
+    v = await _decide_list(_list_cart(1, 1), 29.0)
+    sent = _probe_ids_from(decisions_backend["sent"][0])
+    assert not {"quantity_exceeds_intent", "product_not_requested", "amount_from_media"} & set(sent)
+    assert v.action == "approve_checkout" and v.media_quantities is None and v.reason is None
+    assert "quantity_from_media is true" in decisions_backend["sent"][0]["input"][-1]["text"]
+
+
+async def test_list_quantity_from_photo_escalates_and_says_which(decisions_backend):
+    """'x6' read off the photo: never a silent approve; the verdict names the quantity for the UI."""
+    v = await _decide_list(_list_cart(1, 6), 35.0)
+    assert v.action == "escalate_to_neon_swap"
+    assert v.media_quantities == [{"item": "gid://shopify/ProductVariant/2", "quantity": 6, "source": "media"}]
+    assert "6 x gid://shopify/ProductVariant/2" in v.reason and "confirm" in v.reason
+
+
+async def test_list_over_budget_hard_blocks(decisions_backend):
+    v = await _decide_list(_list_cart(1, 1), 52.0)
+    assert v.action == "hard_block_quarantine" and "over the $40.00 budget" in v.reason
+
+
+async def test_list_injection_still_hard_blocks(decisions_backend):
+    """List mode only skips typed-quantity probes: an instruction to the agent still blocks."""
+    decisions_backend["overrides"] = {"hidden_text_instruction": 0.9}
+    v = await _decide_list(_list_cart(1, 1), 20.0)
+    assert v.action == "hard_block_quarantine"
+
+
+async def test_list_media_quantity_with_other_block_stays_block(decisions_backend):
+    decisions_backend["overrides"] = {"exceeds_budget": 0.9}
+    v = await _decide_list(_list_cart(6), 30.0)
+    assert v.action == "hard_block_quarantine" and v.media_quantities[0]["quantity"] == 6
+
+
+async def test_normal_request_unchanged_by_list_rules(decisions_backend):
+    v = await decide(INTENT, [], PRODUCT, _list_cart(1), None, LIST_RULES, 19.99)
+    assert v.action == "approve_checkout" and v.media_quantities is None
+    assert "quantity_exceeds_intent" in _probe_ids_from(decisions_backend["sent"][0])
+
+
+def test_gate_list_rules_unit():
+    assert gate(APPROVE, _results(), PROBES, "low", 0, list_mode=True,
+                media_quantities=[{"item": "v", "quantity": 6}]) == "escalate_to_neon_swap"
+    assert gate(APPROVE, _results(), PROBES, "low", 0, list_mode=True, over_budget=True) == "hard_block_quarantine"
+    assert gate(APPROVE, _results(), PROBES, "low", 0, list_mode=True) == "approve_checkout"
+    # outside list mode the list arguments do nothing
+    assert gate(APPROVE, _results(), PROBES, "low", 0, media_quantities=[{"item": "v", "quantity": 6}]) == "approve_checkout"
+
+
+def test_cart_quantities_both_shapes():
+    assert fw.cart_quantities(_list_cart(2, 1)) == [("gid://shopify/ProductVariant/1", 2),
+                                                    ("gid://shopify/ProductVariant/2", 1)]
+    flat = ToolCall(name="create_cart", arguments={"lines": [{"product_id": "p1", "quantity": 3}]})
+    assert fw.cart_quantities(flat) == [("p1", 3)]

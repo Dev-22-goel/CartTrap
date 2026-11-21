@@ -148,38 +148,71 @@ async def test_argon_runs_concurrently(fakes, monkeypatch, tmp_path):
     _, s0, s1 = shop.sent[0]
     assert shop.sent[0][0] == "search_catalog"
     assert p0 < s1 and s0 < p1                       # perception and the first search overlap in time
-    # Argon (0.2 s) was still running at the first decide: the firewall did not wait for it
-    assert fakes["decide_calls"][0]["claims"] is None
+    # Argon (0.2 s) finished inside ARGON_WAIT_MS (3 s default), so the first decide got its Claims
+    assert fakes["decide_calls"][0]["claims"] == CLAIMS
     assert res.claims == CLAIMS
 
 
-async def test_slow_perceive_does_not_delay_decide(fakes, monkeypatch, tmp_path):
-    """The firewall never waits for Argon: decide() runs with claims=None while perception is
-    still going, and Argon's perception event is still emitted when it finishes."""
-    t = {}
+def _timed_decide(monkeypatch, t):
+    orig = gs.decide
 
-    async def slow_perceive(media):
-        await asyncio.sleep(0.5)
+    async def timed(*a, **kw):
+        t.setdefault("decide_at", []).append(time.perf_counter())
+        return await orig(*a, **kw)
+
+    monkeypatch.setattr(gs, "decide", timed)
+
+
+def _slow_perceive(monkeypatch, t, seconds):
+    async def slow(media):
+        await asyncio.sleep(seconds)
         t["perceive_done"] = time.perf_counter()
         return CLAIMS
 
-    orig = gs.decide
+    monkeypatch.setattr(gs, "perceive", slow)
 
-    async def timed_decide(*a, **kw):
-        t.setdefault("decide_at", time.perf_counter())
-        return await orig(*a, **kw)
 
-    monkeypatch.setattr(gs, "perceive", slow_perceive)
-    monkeypatch.setattr(gs, "decide", timed_decide)
+async def test_decide_waits_for_argon_within_argon_wait_ms(fakes, monkeypatch, tmp_path):
+    """Task 15 failure 1: Argon finishing inside ARGON_WAIT_MS means the firewall gets its Claims,
+    so the verdict no longer depends on whether the cart beat Argon."""
+    t = {}
+    monkeypatch.setattr(gs.config, "ARGON_WAIT_MS", 1000)
+    _slow_perceive(monkeypatch, t, 0.2)
+    _timed_decide(monkeypatch, t)
+    await _run(CountingModel([SEARCH, CART, None]), LiveFakeShop(), media=_img(tmp_path))
+    assert t["decide_at"][0] >= t["perceive_done"]           # waited for Argon
+    assert fakes["decide_calls"][0]["claims"] == CLAIMS
+
+
+async def test_slow_perceive_waits_at_most_argon_wait_ms(fakes, monkeypatch, tmp_path):
+    """Argon slower than ARGON_WAIT_MS: decide runs after the wait with claims=None, and Argon's
+    perception event is still emitted when it finishes."""
+    t = {}
+    monkeypatch.setattr(gs.config, "ARGON_WAIT_MS", 100)
+    _slow_perceive(monkeypatch, t, 0.6)
+    _timed_decide(monkeypatch, t)
     t0 = time.perf_counter()
     res, bus = await _run(CountingModel([SEARCH, CART, None]), LiveFakeShop(), media=_img(tmp_path))
-    assert t["decide_at"] - t0 < 0.25 and t["decide_at"] < t["perceive_done"]  # not held for 0.5 s
+    waited = t["decide_at"][0] - t0
+    assert 0.09 <= waited < 0.45 and t["decide_at"][0] < t["perceive_done"]  # ~0.1 s, not 0.6 s
     assert fakes["decide_calls"][0]["claims"] is None
     events = bus.events("r")
     verdict_i = next(i for i, e in enumerate(events) if e.kind == "verdict")
     perc = [i for i, e in enumerate(events) if e.kind == "log" and e.data.get("event") == "perception"]
-    assert len(perc) == 1 and perc[0] > verdict_i  # still shown, once, after it finished
+    assert len(perc) == 1 and perc[0] > verdict_i
     assert res.claims == CLAIMS
+
+
+async def test_only_first_decision_waits_for_argon(fakes, monkeypatch, tmp_path):
+    t = {}
+    monkeypatch.setattr(gs.config, "ARGON_WAIT_MS", 150)
+    _slow_perceive(monkeypatch, t, 0.8)
+    _timed_decide(monkeypatch, t)
+    t0 = time.perf_counter()
+    await _run(CountingModel([SEARCH, CART, CART, None]), LiveFakeShop(), media=_img(tmp_path))
+    first, second = t["decide_at"][0] - t0, t["decide_at"][1] - t0
+    assert second - first < 0.1                                 # no second 150 ms wait
+    assert [c["claims"] for c in fakes["decide_calls"]] == [None, None]
 
 
 async def test_finished_perception_claims_are_passed(fakes, monkeypatch, tmp_path):
@@ -195,6 +228,7 @@ async def test_blocked_with_slow_perception_still_stops(fakes, monkeypatch, tmp_
         return CLAIMS
 
     monkeypatch.setattr(gs, "perceive", slow_perceive)
+    monkeypatch.setattr(gs.config, "ARGON_WAIT_MS", 50)
     fakes["actions"] = ["hard_block_quarantine"]
     model = CountingModel([SEARCH, CART, SEARCH, None])
     res, bus = await _run(model, LiveFakeShop(), media=_img(tmp_path))

@@ -238,6 +238,12 @@ Findings for the failure analysis (none acted on):
 
 **They are scored exactly once, AFTER the 2:30 Task 15 fix:** `uv run python scripts/run_golden.py --holdout2` writes `eval/golden/holdout2_results.json` and refuses to overwrite it. Normal runs and `--holdout` never include them, `--holdout` and `--holdout2` can't be combined, and `sweep_thresholds.py` refuses holdout2 data.
 
+### 7. Task 15 fixes (Nov 21): interface changes. Full write-up in `docs/failure-analysis.md`
+- **Argon wait:** the guarded shopper waits up to `ARGON_WAIT_MS` (env, default 3000) for Argon's claims before the first firewall decision, then decides with `claims=None`. Argon images now go in at `high` / 1024 px (`ARGON_IMAGE_RESOLUTION`, `ARGON_IMAGE_MAX_PX`).
+- **Single image:** `benign_parts_suspicious_whole` is no longer sent with fewer than 2 media items, so **Member 3** won't see it in `Verdict.probes` then.
+- **List requests:** `Intent.quantity_from_media` is True for "buy what's on this list" style requests. Then over budget → block; **any cart quantity above 1 → `escalate_to_neon_swap`** with the new `Verdict.media_quantities` (`[{"item", "quantity", "source": "media"}]`) and `Verdict.reason`. **Member 3:** show `reason` and ask the user to confirm the quantities. **Member 4:** the Neon card can quote `reason`. All quantities 1 and in budget approve as normal.
+- Golden with Argon after the fix: 18/18, 12/12, 30/30. Holdout 2 (scored once): 10/10, 5/5, 15/15.
+
 ## Gemini models used
 
 | Model | Job | Where in the code |

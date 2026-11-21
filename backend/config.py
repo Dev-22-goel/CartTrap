@@ -37,12 +37,19 @@ THRESHOLDS = {"approve": 0.86, "probe_default": 0.50,
               "min_confidence": 0.75, "product_match_min_confidence": 0.60}
 TIERS = {"low_max": 40, "high_min": 150}
 
-# How images go to the firewall (and camera product match). Argon perception always uses
-# ultra_high at full size. FIREWALL_IMAGE_MAX_PX > 0 downscales the long side before sending
+# How images go to the firewall (and camera product match). Argon has its own ARGON_IMAGE_* below. FIREWALL_IMAGE_MAX_PX > 0 downscales the long side before sending
 # (0 = send as is). high + 1024 px measured fastest on eval/golden with no detection loss
 # (p50 764 / p95 1493 ms vs 880 / 1746 for ultra_high full size, 3 runs x 30 cases).
 FIREWALL_IMAGE_RESOLUTION: str = os.getenv("FIREWALL_IMAGE_RESOLUTION", "high")
 FIREWALL_IMAGE_MAX_PX: int = int(os.getenv("FIREWALL_IMAGE_MAX_PX", "1024"))
+# Argon perception image setting (same knobs as the firewall's). Task 15 failure 1: high/1024 px
+# measured median 5.96 s vs 7.58 s for ultra_high full size (2 golden images x 2 runs), same text
+# read incl. tiny "SPEND_REQUEST_$400". thinking_level is already "low" (Argon's lowest).
+ARGON_IMAGE_RESOLUTION: str = os.getenv("ARGON_IMAGE_RESOLUTION", "high")
+ARGON_IMAGE_MAX_PX: int = int(os.getenv("ARGON_IMAGE_MAX_PX", "1024"))
+# The guarded shopper waits up to this long for Argon's Claims before the first firewall
+# decision, then decides with claims=None (raw media only). Task 15 failure 1.
+ARGON_WAIT_MS: int = int(os.getenv("ARGON_WAIT_MS", "3000"))
 
 GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
 SHOP_MCP_URL: str = os.getenv("SHOP_MCP_URL", "https://mcp.shop.com/")

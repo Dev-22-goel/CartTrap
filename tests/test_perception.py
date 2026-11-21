@@ -70,7 +70,7 @@ async def test_perceive_no_media_skips_call(monkeypatch):
 
 
 async def test_argon_request_has_no_tools(monkeypatch, img):
-    """The real _call_argon uses the Interactions API: Claims JSON schema, no tools, image at ultra_high."""
+    """The real _call_argon uses the Interactions API: Claims JSON schema, no tools, image at config.ARGON_IMAGE_RESOLUTION."""
     calls = []
 
     class FakeInteractions:
@@ -90,7 +90,7 @@ async def test_argon_request_has_no_tools(monkeypatch, img):
     assert set(kw["response_format"]["schema"]["properties"]) == set(Claims.model_fields)
     assert kw["generation_config"]["thinking_level"] in {"minimal", "low", "medium", "high", "xhigh"}
     block = kw["input"][0]
-    assert block["type"] == "image" and block["resolution"] == "ultra_high"
+    assert block["type"] == "image" and block["resolution"] == config.ARGON_IMAGE_RESOLUTION
     assert base64.b64decode(block["data"]) == b"\x89PNG fake"
     assert kw["input"][-1]["type"] == "text"
 
@@ -140,3 +140,29 @@ async def test_argon_video_uses_agentic_processing(monkeypatch, tmp_path):
                                     "mime_type": "video/mp4", "processing": "agentic"}
     # the firewall keeps the fast default for video
     assert "processing" not in argon.gemini.content_blocks([Media(kind="video", path=str(vid), mime="video/mp4")])[0]
+
+
+def test_argon_image_defaults_high_1024():
+    """Task 15 failure 1: Argon images go in at high, long side 1024 px (faster, same text read)."""
+    assert config.ARGON_IMAGE_RESOLUTION == "high" and config.ARGON_IMAGE_MAX_PX == 1024
+    assert config.ARGON_WAIT_MS == 3000
+
+
+async def test_argon_downscales_large_images(monkeypatch, tmp_path):
+    from PIL import Image
+    big = tmp_path / "big.png"
+    Image.new("RGB", (2400, 1800), (10, 200, 10)).save(big)
+    calls = []
+
+    class FakeInteractions:
+        async def create(self, **kw):
+            calls.append(kw)
+            return SimpleNamespace(output_text=Claims(**GOOD).model_dump_json())
+
+    monkeypatch.setattr(argon.gemini, "client",
+                        lambda: SimpleNamespace(aio=SimpleNamespace(interactions=FakeInteractions())))
+    await perceive([Media(kind="image", path=str(big), mime="image/png")])
+    import io
+    block = calls[0]["input"][0]
+    assert Image.open(io.BytesIO(base64.b64decode(block["data"]))).size == (1024, 768)
+    assert block["mime_type"] == "image/jpeg"
