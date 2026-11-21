@@ -1,0 +1,5 @@
+- Branch `m4-codex` at `379c773` contains all five required handoff files and ADRs 0001–0007. Pull from `adish` failed on `.git/FETCH_HEAD` permissions. GitHub reports `adish` at `64c9642`.
+- Reviewed both revisions of the lane contract and verified creation and removal of `handoff/.codex-write-test`.
+- Superpowers `test-driven-development` is readable by path. Context7 is listed in `.mcp.json`. Codex reports no Context7 server.
+- Python is missing `hypothesis` and `vcrpy` (`vcr`). `pytest-asyncio` 1.3.0 and `numpy` 2.2.6 import. `pytest` is absent from PATH. `python -m pytest --version` reports `pytest 9.0.3`.
+- Setup is blocked before C1. PowerShell rejected the requested `codex.ps1` launcher. Staging the status failed on `.git/index.lock` permissions.

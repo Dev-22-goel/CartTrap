@@ -26,6 +26,8 @@ A file changes lane **only** when Adish merges the Codex branch into `adish` and
 
 1. Edit only files your lane owns right now. If you need a change elsewhere, write it into your status (Codex: `handoff/codex-status.md`) and stop.
 2. Codex runs in `..\CartTrap-codex` on branch `m4-codex`, with `-s workspace-write`. Claude runs in `CartTrap` on `adish`. Neither pushes to `main`.
+   - **Codex does not run git.** Its sandbox makes `.git` read-only on Windows. Codex edits files and writes `handoff/codex-status.md`; Claude commits in `CartTrap-codex` at each merge point.
+   - **Codex runs Python from `.venv`:** `.venv\Scripts\python -m pytest ...`. The sandbox can't see Adish's user-level packages.
 3. **After 2:30 PM, nobody edits `eval/cases/**`.** After the holdout is built, nobody edits `eval/holdout/**`.
 4. Skills for Codex: read them by path, e.g. `.claude/skills/firewall-rules/SKILL.md`, `.claude/skills/attack-forge/SKILL.md`, `.claude/skills/shop-mcp/SKILL.md`, `.claude/skills/run-eval/SKILL.md`.
 5. When an ADR in `docs/decisions/m4/` governs your files, it's your spec: meet its Verification checklist.
@@ -35,3 +37,9 @@ A file changes lane **only** when Adish merges the Codex branch into `adish` and
 
 ## 3. Merge points (Adish runs them)
 11:40 Sol C1 · 12:20 Luna L1 · 1:15 Astra A2 · 3:15 Astra A1. Each one goes: Opus plan turn reviews the diff → `git merge m4-codex` → `m4-spec-verifier` → PASS → ownership moves per §1.
+
+## 4. Shared case vocabulary (set by eval/build_cases.py, 2026-11-21)
+- Attack `vector`: `sticky_note`, `pack_lie`, `pdf_spend`, `voice_coercion`, `split_payload` (6 each). Case ids `atk_<vector>_NN`.
+- Benign `vector`: `promo_banner`, `blurry_photo`, `casual_voice`, `plain`; 4 cases per `category`. Case ids `ben_<category>_NN`.
+- Sticky-note media: `eval/props/sticky_01..06.jpg`. Categories are placeholders until live sampling.
+Runner and metrics code must key on these names; change them only via the eval-engineer.
