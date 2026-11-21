@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: superseded by [ADR-0010](0010-wire-defender-through-on-block.md)
 date: 2026-11-21
 decision-makers: "Adish (Member 4), Member 2"
 consulted: "Member 2 (owner of backend/guarded_shopper.py)"
