@@ -169,7 +169,14 @@ Every `verdict` and every `log` I emit has a `model` field. The agent's final-te
 
 Rules kept: model IDs only in `config.py`; no temperature, top_p, top_k or thinking_budget on Gemini 4 calls; `thinking_level` is `low` for Argon and `minimal` only for the json_llm fallback, which switches to `low` if pointed at Hydrogen or Neon.
 
-**Is the Decisions API reachable with our key?** Member 1 saw that `gemini-decision-1` isn't in `models.list()`. It's served on v1beta, so it may just be unlisted. Run `uv run python scripts/check_decisions.py`: it makes one real call and prints the answer and latency, or the exact error. `FIREWALL_BACKEND` is still `decisions` (not switched).
+**Latency set-up:**
+- `backend/gemini.py` creates each genai client (default and v1beta) **once per process**, lazily, and every call reuses it. A client keeps its HTTP connection pool, so warm calls skip the TLS handshake.
+- On FastAPI startup, `main.py` fires `firewall_decisions.warm_up()` in the background: one tiny Decisions call that opens the connection. A failure is only logged, and startup never waits for it. It's skipped with no key or with `FIREWALL_BACKEND=json_llm`.
+- `FIREWALL_TIMEOUT_MS` (env, default 1500) sets `THRESHOLDS["firewall_timeout_ms"]`. Fail-closed behaviour is unchanged.
+- `uv run python scripts/check_decisions.py` runs 6 calls on one client: (a) 1 question, (b) the full firewall request, (c) the full request plus an image, each twice. It prints every latency and the warm p50.
+- **Member 1:** `shopper_loop` creates a new `genai.Client` per run (`client or genai.Client(...)`), so the Hydrogen shopper pays for a fresh connection on each run. It doesn't affect the firewall, but `backend.gemini.client()` would reuse one.
+
+**Decisions API with our key:** it works (Udaya confirmed). Member 1 saw that `gemini-decision-1` isn't in `models.list()`; it's served on v1beta and just unlisted. A cold single call from a fresh process took 1547 to 1688 ms, over the 1500 ms timeout, which is why the client reuse and warm-up above exist. `FIREWALL_BACKEND` is still `decisions`.
 
 ## Coming next from me
 
