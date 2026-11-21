@@ -6,7 +6,6 @@ CartTrap is a live multimodal red-team arena and execution firewall for AI shopp
 - `PRD.md`: what and why, user stories with acceptance criteria, demo script, anti-goals.
 - `docs/architecture.md`: stack, components, JSON shapes, API, Gemini integration.
 - `plan.md`: Superpowers-format plan: Global Constraints, Review Focus, 17 tasks with exact Interfaces and TDD steps. Tick boxes as you finish.
-- `plans/integration.md` + `plans/member-1..4.md`: who owns which tasks, the shared timeline, contracts C1–C8, sync checkpoints S1–S7, merge rules, `make integration` tests.
 - `docs/architecture.md` §0: the 7 builder decisions (trust boundary, dry-run victim, escalate vs. block, latency definitions, eval honesty). Binding.
 
 ## Layout
