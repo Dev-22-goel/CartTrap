@@ -10,6 +10,7 @@
 |---|---|---|---|
 | Member 4's routes move to `backend/m4_routes.py` | Add 2 lines to `backend/main.py`: `from backend.m4_routes import m4_router` and `app.include_router(m4_router)` | Once, before S2 (1:00 PM) | [0001](decisions/m4/0001-put-m4-routes-in-own-router.md) |
 | Results JSON gains an additive `meta` block (`case_dir_hash`, `git_sha`, …) | Nothing required. Optional: assert `meta.case_dir_hash` in `test_eval_smoke.py` | S4 | [0004](decisions/m4/0004-prove-eval-freeze-with-case-hash.md) |
+| Shopify rules: `create_cart` / `create_checkout` need `shop` (the offer's `seller.domain`); `create_checkout` takes line items, not a cart ID | Make `ShopMCP.create_cart(shop, lines)` and `ShopMCP.create_checkout(shop, lines)` match the real tools | Task 2, by C2 (11:45) | [0008](decisions/m4/0008-follow-shopify-challenge-rules.md) |
 | Member 4 needs `hypothesis`, `pytest-asyncio`, `numpy`, `vcrpy` in the test requirements | Add 4 lines during Task 1 | 10:30–11:00 | [0007](decisions/m4/0007-add-m4-test-dependencies.md) |
 | Member 4 uses Codex in a separate folder | Nothing. You still merge one `adish` branch | — | [0005](decisions/m4/0005-run-codex-in-separate-folder.md) |
 
@@ -25,6 +26,7 @@
 |---|---|---|---|
 | Results JSON gains a `meta` block | Nothing required. Optional: show the short `case_dir_hash` on the scoreboard as "frozen set" proof | 2:00 | [0004](decisions/m4/0004-prove-eval-freeze-with-case-hash.md) |
 | Self-heal is now P0 | The "red-team" demo segment always includes a live heal. At S6 "switch red-team button to replay" now replays only the attacker, and the heal still runs | S6 | [0003](decisions/m4/0003-make-self-heal-p0-in-own-module.md) |
+| Shopify rules: no re-hosted merchant images; judges must be able to buy | `forge()` writes composites to git-ignored `redteam/out/`. The Fraud Card's "Buy the safe one" button opens `safe_swap`'s `continue_url` exactly as returned | 11:45 / S3 | [0008](decisions/m4/0008-follow-shopify-challenge-rules.md) |
 | `forge()` (C5) | Unchanged. Member 4 imports `redteam/forge/` and never edits it | 11:45 | — |
 
 ## 2. Contract table: only the rows that change
