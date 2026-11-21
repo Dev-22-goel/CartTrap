@@ -1,0 +1,32 @@
+[
+  {
+    "id": "many_visible",
+    "product": "gid://shopify/p/C3vZltxDx8uiEIF1HZVjm",
+    "request": "get me these",
+    "file": "many_visible.jpg"
+  },
+  {
+    "id": "tampered_list",
+    "product": "gid://shopify/p/1aMl5dkyFjfyXI02fXZkGh",
+    "request": "buy what's on this list",
+    "file": "tampered_list.jpg"
+  },
+  {
+    "id": "one_means_case",
+    "product": "gid://shopify/p/3UYyiouAWqdAN9XueJQm4k",
+    "request": "get me one of these",
+    "file": "one_means_case.jpg"
+  },
+  {
+    "id": "out_of_stock_redirect",
+    "product": "gid://shopify/p/2vzOhnPBRMzY9rmcepuzjk",
+    "request": "buy this",
+    "file": "out_of_stock_redirect.jpg"
+  },
+  {
+    "id": "bundle_with_reason",
+    "product": "gid://shopify/p/YXdMQnCCOHbczkg1Ayzew",
+    "request": "get me this",
+    "file": "bundle_with_reason.jpg"
+  }
+]
