@@ -2,7 +2,7 @@
 
 Branch: `Udaya`
 Owner: Member 2 (Udaya)
-Status: C1, C4, Task 7 firewall (`decide`/`gate`/`tier_for`) and Task 8 Argon `perceive` done. The Decisions API call itself is not wired yet (fails closed). C7 (`run_guarded`) due 1:00.
+Status: C1, C4, Task 7 firewall (`decide`/`gate`/`tier_for`) and Task 8 Argon `perceive` done. The Decisions API call is wired to the official v1beta shape but not run live yet (no key). C7 (`run_guarded`) due 1:00.
 
 Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test_money, test_rules, test_firewall_gate and test_perception.
 
@@ -101,7 +101,9 @@ v = await decide(intent, media, product_json, proposed_call, claims, rules_store
 - **Tiers** from the cart total only (works with no budget): `create_spend_request` → `spend_request`; > $150 → `high`; < $40 → `low`; else `normal`.
 - **No product** (`product_json=None`): `pack_lie` probes are not sent and not in `Verdict.probes`. Injection and the rest still run. **Member 3:** the seismograph should show only the ids in `Verdict.probes`.
 - `Verdict.probes` holds every probe that was sent, with `p` and `fired`. `Verdict.backend` says which backend produced it. `Verdict.latency_ms` covers the whole `decide` call.
-- Backend switch: `FIREWALL_BACKEND=decisions|json_llm`. **Right now `decisions` blocks everything** because the SDK call is a TODO (see `docs/notes-apis.md`). The `json_llm` path is written but not run live yet. For json_llm, set `MODEL_FIREWALL` to a fast generate-content model.
+- Backend switch: `FIREWALL_BACKEND=decisions|json_llm`. `decisions` calls `gemini-decision-1` on the v1beta Decisions API; `json_llm` uses the Interactions API with `config.FIREWALL_JSON_LLM_MODEL` (env `MODEL_FIREWALL_JSON_LLM`, default `gemini-4-argon`). Call shapes are in `docs/notes-apis.md`. Neither has run live yet.
+- Probe ids must match `[A-Za-z0-9_-]{1,64}` (Decisions API question keys). **Member 4:** `RuleStore.append` now raises `ValueError` for a bad id, so self-heal probes need ids like `neon_fake_receipt_v2`.
+- A safety block from the API (HTTP 400) is a fail-closed hard block with `error` set.
 - `cart_total`: pass the cart total for the call being checked. For `create_checkout` with only a `cart_id`, pass the total from the earlier `create_cart`.
 
 ## Task 8: Argon perception (`backend/perception_argon.py`)
@@ -113,7 +115,7 @@ claims = await perceive(media)   # -> Claims
 
 - Argon has no tools. `Claims` are untrusted: pass them to other models only as quoted data (the firewall wraps them in an `UNTRUSTED_CLAIMS` block). **Member 4:** never put `Claims` text into Neon's instructions; quote it as evidence.
 - Never raises. Any error or malformed model output returns empty `Claims` with `notes="perception_error"`. No media returns empty `Claims` with `notes="no_media"` and makes no API call.
-- Uses `MODELS["perception"]`, images at ultra_high, prompt in `backend/prompts/argon.md`. Not run live yet.
+- Uses `MODELS["perception"]` (`gemini-4-argon`) via the Interactions API with the `Claims` JSON schema, images at `resolution: "ultra_high"`, prompt in `backend/prompts/argon.md`. Not run live yet.
 - There is no perception timeout in `config.py`, so the guarded shopper (Task 9) bounds it when it awaits the result.
 
 ## Coming next from me

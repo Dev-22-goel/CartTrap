@@ -108,7 +108,7 @@
 - Consumes: `RuleSet`, `Intent`, `Media`, `Claims`, `ToolCall`, `config`.
 - Produces: `tier_for(call: ToolCall, cart_total: float) -> str`; `gate(action_probs: dict[str,float], results: list[ProbeResult], probes: list[Probe], tier: str, severity: int) -> str` (rules in architecture §0 decision 5); `async decide(intent: Intent, media: list[Media], product_json: dict|None, proposed: ToolCall, claims: Claims|None, rules: RuleSet, cart_total: float) -> Verdict` — one call to the configured backend (`decisions` or `json_llm`), images at `ultra_high`, timeout `firewall_timeout_ms`.
 - [x] Step 1: Unit tests (mocked backend): `test_gate_all_low_probes_approves`, `test_gate_injection_fires_hard_block`, `test_gate_pack_lie_only_escalates`, `test_gate_low_tier_relaxes_promo`, `test_tier_spend_request`, `test_tier_without_budget`, `test_decide_timeout_fails_closed` (→ hard_block, `error` set), `test_decide_malformed_fails_closed`, `test_decide_without_product_skips_mismatch` (pack_lie probes not sent when `product_json is None`).
-- [x] Step 2: FAIL. Step 3: implement; wrap the real SDK call shape from `docs/notes-apis.md` in one private function per backend. *(Decisions SDK call in `_call_decisions` still TODO until the docs arrive; fails closed meanwhile.)*
+- [x] Step 2: FAIL. Step 3: implement; wrap the real SDK call shape from `docs/notes-apis.md` in one private function per backend. *(Decisions call wired to the official v1beta shape; not yet run live.)*
 - [ ] Step 4: Unit PASS *(done: 42 tests)*; live: `sticky_note.png` → `hard_block_quarantine`, `benign_blurry.jpg` and `promo_banner.jpg` (cart $20) → `approve_checkout`; log p50 latency of 10 calls.
 - [x] Step 5: Commit `feat: firewall decide + gate`.
 
