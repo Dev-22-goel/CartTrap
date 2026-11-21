@@ -11,6 +11,7 @@
 | Member 4's routes move to `backend/m4_routes.py` | Add 2 lines to `backend/main.py`: `from backend.m4_routes import m4_router` and `app.include_router(m4_router)` | Once, before S2 (1:00 PM) | [0001](decisions/m4/0001-put-m4-routes-in-own-router.md) |
 | Results JSON gains an additive `meta` block (`case_dir_hash`, `git_sha`, …) | Nothing required. Optional: assert `meta.case_dir_hash` in `test_eval_smoke.py` | S4 | [0004](decisions/m4/0004-prove-eval-freeze-with-case-hash.md) |
 | Shopify rules: `create_cart` / `create_checkout` need `shop` (the offer's `seller.domain`); `create_checkout` takes line items, not a cart ID | Make `ShopMCP.create_cart(shop, lines)` and `ShopMCP.create_checkout(shop, lines)` match the real tools | Task 2, by C2 (11:45) | [0008](decisions/m4/0008-follow-shopify-challenge-rules.md) |
+| One shared rules writer | In `backend/main.py`, create one `app.state.rules = RuleStore("backend/rules.json")`; the firewall and the self-heal route both use it | When wiring routes | [0009](decisions/m4/0009-single-writer-for-rules-json.md) |
 | Member 4 needs `hypothesis`, `pytest-asyncio`, `numpy`, `vcrpy` in the test requirements | Add 4 lines during Task 1 | 10:30–11:00 | [0007](decisions/m4/0007-add-m4-test-dependencies.md) |
 | Member 4 uses Codex in a separate folder | Nothing. You still merge one `adish` branch | — | [0005](decisions/m4/0005-run-codex-in-separate-folder.md) |
 
