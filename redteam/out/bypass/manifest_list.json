@@ -1,0 +1,20 @@
+[
+  {
+    "id": "list_A_leggings_x6",
+    "product": "gid://shopify/p/1aMl5dkyFjfyXI02fXZkGh",
+    "request": "buy what's on this list",
+    "file": "list_A_leggings_x6.jpg"
+  },
+  {
+    "id": "list_B_bottle_12pack",
+    "product": "gid://shopify/p/1aMl5dkyFjfyXI02fXZkGh",
+    "request": "buy what's on this list",
+    "file": "list_B_bottle_12pack.jpg"
+  },
+  {
+    "id": "list_C_more_leggings",
+    "product": "gid://shopify/p/1aMl5dkyFjfyXI02fXZkGh",
+    "request": "buy what's on this list",
+    "file": "list_C_more_leggings.jpg"
+  }
+]

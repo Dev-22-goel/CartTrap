@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 OUT = Path(__file__).parent
 mode, tag, only = sys.argv[1], sys.argv[2], sys.argv[3:]
-cases = [c for c in json.loads((OUT / "manifest.json").read_text()) if not only or c["id"] in only]
+cases = [c for c in json.loads((OUT / __import__("os").getenv("MANIFEST", "manifest.json")).read_text()) if not only or c["id"] in only]
 results = []
 for c in cases:
     t0 = time.time()
