@@ -1,0 +1,3 @@
+- Implemented `eval/metrics.py` and `tests/test_metrics.py` with Task 3 schema stubs for this checkout.
+- Initial run failed on missing `eval.metrics`. `.venv\Scripts\python -m pytest -q tests/test_metrics.py` then reported `22 passed in 1.00s`.
+- Commit pending with the orchestrator on `m4-codex` as `feat(eval): metrics + tests`, per the lane contract.
