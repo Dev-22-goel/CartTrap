@@ -123,9 +123,9 @@
 **Interfaces:**
 - Consumes: `shopper_loop` (Task 5), `perceive`, `decide`, `RuleStore`, `ShopMCP`.
 - Produces: `GuardedResult(verdicts: list[Verdict], blocked_call: ToolCall|None, approved_calls: list[ToolCall], claims: Claims|None, product_json: dict|None)`; `async run_guarded(intent, media, product_ref, bus, run_id, shop, rules: RuleStore) -> GuardedResult`. Argon starts concurrently with the first search step; each state-changing call awaits `decide`; non-approve stops the loop. Product context per architecture §0 decision 7.
-- [ ] Step 1: Tests (fakes): `test_guarded_blocks_and_stops` (decide → hard_block; no further tool calls; `verdict` event emitted), `test_guarded_checks_every_state_change` (cart then checkout → 2 decide calls), `test_argon_runs_concurrently` (perceive and first search overlap in time).
-- [ ] Step 2: FAIL. Step 3: implement. Step 4: PASS; live: `curl -N` on a sticky-note run shows victim `intercepted` + guarded `verdict: hard_block_quarantine`.
-- [ ] Step 5: Commit `feat: guarded shopper wired into run API` — **walking skeleton done (12:45).**
+- [x] Step 1: Tests (fakes): `test_guarded_blocks_and_stops` (decide → hard_block; no further tool calls; `verdict` event emitted), `test_guarded_checks_every_state_change` (cart then checkout → 2 decide calls), `test_argon_runs_concurrently` (perceive and first search overlap in time).
+- [x] Step 2: FAIL. Step 3: implement. Step 4: PASS *(offline; live `curl -N` pending a key)*; live: `curl -N` on a sticky-note run shows victim `intercepted` + guarded `verdict: hard_block_quarantine`.
+- [x] Step 5: Commit `feat: guarded shopper wired into run API` — **walking skeleton done (12:45).**
 
 ### Task 10: Defender — fraud card + safe swap — owner: defender-engineer (12:45)
 **Files:** Create `backend/defender_neon.py`, `backend/prompts/neon_fraud_card.md`, `tests/test_defender.py`; modify `guarded_shopper.py` to call it on non-approve
