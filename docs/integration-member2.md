@@ -2,9 +2,9 @@
 
 Branch: `Udaya`
 Owner: Member 2 (Udaya)
-Status: C1 and C4 done. C7 (`run_guarded`) due 1:00.
+Status: C1, C4 and Task 7 firewall (`decide`/`gate`/`tier_for`) done. The Decisions API call itself is not wired yet (fails closed). C7 (`run_guarded`) due 1:00.
 
-Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test_money and test_rules.
+Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test_money, test_rules and test_firewall_gate.
 
 ## What's ready
 
@@ -12,6 +12,7 @@ Run the tests: `uv sync` then `uv run pytest -q`. My tests are test_intent, test
 |---|---|---|
 | C1 schemas, intent, spend math | `backend/schemas.py`, `backend/intent.py`, `backend/money.py` | everyone |
 | C4 rules store and 50 seed probes | `backend/rules.py`, `backend/rules.json` | Member 3 (probe names for the lights), Member 4 (self-heal `append`), me (firewall) |
+| Task 7 firewall | `backend/firewall_decisions.py` | me (guarded shopper), Member 4 (Neon reads `Verdict`), Member 3 (seismograph), eval |
 
 ## C1: schemas (`backend/schemas.py`)
 
@@ -86,11 +87,26 @@ new_version = store.append(probe)   # Adds a probe, bumps the version, saves saf
 - Promo probes don't fire just because a promo is visible. They only fire when the promo changed the cart (more items, a different product, an add-on). Threshold is 0.10, relaxed to 0.50 for carts under $40.
 - Default threshold for everything else is 0.10.
 
+## Task 7: firewall (`backend/firewall_decisions.py`)
+
+```python
+from backend.firewall_decisions import decide, gate, tier_for
+v = await decide(intent, media, product_json, proposed_call, claims, rules_store.current(), cart_total)
+```
+
+- One backend call per state-changing tool call. Never raises: any failure returns a `Verdict`.
+- **Fails closed.** Timeout (over `THRESHOLDS["firewall_timeout_ms"]`, 1500 ms), API error, input blocked by the content filter, missing media file, or a malformed/incomplete response gives `action="hard_block_quarantine"`, `probes=[]`, `action_probs={}`, and `error` set. **Member 3:** show "firewall error" when `error` is set.
+- **Gate** (architecture decision 5): hard block if any `injection | spend_hijack | coercion | split_payload` probe fires or severity is 3. Escalate if only `pack_lie | privacy | promo_benign` fire, or P(approve) < 0.92. Otherwise approve. A probe fires when p ≥ its threshold for the tier (`probe.tiers[tier]` if set, else `probe.threshold`).
+- **Tiers** from the cart total only (works with no budget): `create_spend_request` → `spend_request`; > $150 → `high`; < $40 → `low`; else `normal`.
+- **No product** (`product_json=None`): `pack_lie` probes are not sent and not in `Verdict.probes`. Injection and the rest still run. **Member 3:** the seismograph should show only the ids in `Verdict.probes`.
+- `Verdict.probes` holds every probe that was sent, with `p` and `fired`. `Verdict.backend` says which backend produced it. `Verdict.latency_ms` covers the whole `decide` call.
+- Backend switch: `FIREWALL_BACKEND=decisions|json_llm`. **Right now `decisions` blocks everything** because the SDK call is a TODO (see `docs/notes-apis.md`). The `json_llm` path is written but not run live yet. For json_llm, set `MODEL_FIREWALL` to a fast generate-content model.
+- `cart_total`: pass the cart total for the call being checked. For `create_checkout` with only a `cart_id`, pass the total from the earlier `create_cart`.
+
 ## Coming next from me
 
 | What | When | Interface |
 |---|---|---|
-| Task 7 firewall `decide` + `gate` + `tier_for` | about 12:15 | `backend/firewall_decisions.py`, signatures as in `plan.md` Task 7 |
 | Task 8 Argon `perceive` | about 12:15 | `async perceive(media: list[Media]) -> Claims` |
 | Task 9 C7 `run_guarded` | 1:00 | `async run_guarded(intent, media, product_ref, bus, run_id, shop, rules: RuleStore) -> GuardedResult` |
 
@@ -102,5 +118,5 @@ new_version = store.append(probe)   # Adds a probe, bumps the version, saves saf
 
 ## Open questions
 
-1. Decision 5 doesn't say what happens when a `privacy` or `promo_benign` probe fires. My proposal: escalate (stop the call, Neon builds a safe cart), not hard block. Shout if you disagree.
+1. Decided: when a `privacy` or `promo_benign` probe fires, the gate escalates to a Neon swap (not a hard block). Implemented in Task 7.
 2. This branch is based on `dev` (Member 1 scaffold), so it merges into `dev` cleanly.
