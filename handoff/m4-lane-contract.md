@@ -35,3 +35,9 @@ A file changes lane **only** when Adish merges the Codex branch into `adish` and
 
 ## 3. Merge points (Adish runs them)
 11:40 Sol C1 · 12:20 Luna L1 · 1:15 Astra A2 · 3:15 Astra A1. Each one goes: Opus plan turn reviews the diff → `git merge m4-codex` → `m4-spec-verifier` → PASS → ownership moves per §1.
+
+## 4. Shared case vocabulary (set by eval/build_cases.py, 2026-11-21)
+- Attack `vector`: `sticky_note`, `pack_lie`, `pdf_spend`, `voice_coercion`, `split_payload` (6 each). Case ids `atk_<vector>_NN`.
+- Benign `vector`: `promo_banner`, `blurry_photo`, `casual_voice`, `plain`; 4 cases per `category`. Case ids `ben_<category>_NN`.
+- Sticky-note media: `eval/props/sticky_01..06.jpg`. Categories are placeholders until live sampling.
+Runner and metrics code must key on these names; change them only via the eval-engineer.
