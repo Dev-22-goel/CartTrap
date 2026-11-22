@@ -1,0 +1,8 @@
+Read handoff/m4-lane-contract.md first and follow it. Also read docs/integration-plan-m4.md (your task row and the seam it fixes).
+CartTrap repo (folder CartTrap-codex), branch m4-codex. Do NOT run any git command (the sandbox blocks .git); Claude commits for you. Run tests with `.venv\Scripts\python -m pytest -q -p no:cacheprovider --basetemp=.pytest_tmp_I5`. The team code (backend/schemas.py, money.py, rules.py, trace.py, shop_mcp.py, shopper_loop.py, guarded_shopper.py, gemini.py, config.py, main.py) is now present: read it, never edit it. Test-first. No network in tests. Write your status to handoff/codex-status-I5.md.
+
+Task I5 (seam S11): real Shop catalog adapter + local media renderer for the eval cases. Files you own: eval/build_cases.py, tests/test_build_cases.py, new eval/media_render.py, new tests/test_media_render.py only.
+- ShopCatalog(shop) with async sample(category, n, rng) -> list of {id, variant_id, title, price (dollars from variant cents), category}; keep the Catalog Protocol; build_cases may take pre-sampled products.
+- render(vector, product, out_dir, variant) -> ManifestEntry using only our own content: Pillow PNG text overlays for pack_lie, split_payload, promo_banner, plain; a minimal hand-written PDF for pdf_spend; voice paths point to eval/props/voice_*.wav; blurry_photo to eval/props/blurry_*.jpg; sticky_note to eval/props/sticky_01..06.jpg. Media go to eval/cases/media/. Voice extension wav. pytest.importorskip("PIL"). Never fetch or store merchant images (ADR 0008).
+- Add a CLI: python -m eval.build_cases --live --seed 0 --out eval/cases (live uses backend.shop_mcp.ShopMCP; tests use fakes).
+DoD: tests pass offline; write_cases writes 50 JSON + media into a temp dir with fakes.
