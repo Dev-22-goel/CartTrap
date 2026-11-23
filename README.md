@@ -223,15 +223,13 @@ A free Render service sleeps after 15 minutes without traffic (the next request 
 
 ## 👥 Authors
 
-| Member | Role | Links |
-|---|---|---|
-| **Adish Padalia** | Defender, red-team & self-heal, live evidence, multimodal dataset, evaluation, full-app integration | [LinkedIn](https://www.linkedin.com/in/adish-padalia-a3768a230/) · [Portfolio](https://adish-padalia-portfolio.vercel.app/) · [GitHub](https://github.com/AdishPadalia26) |
-| **Devansh Goel** | Commerce: Shop MCP client, trace bus, shopper loop, shopping agent | [LinkedIn](https://www.linkedin.com/in/devansh-goel-5309/) · [GitHub](https://github.com/Dev-22-goel) |
-| **Udaya Raja** | Firewall: schemas, perception, Decisions API gate, rules, guarded shopper | [LinkedIn](https://www.linkedin.com/in/udaya-raja/) · [GitHub](https://github.com/U-daya) |
-| **Shivam Sarang** | Frontend: Tote storefront, marketplace, seller portal, deployment | [LinkedIn](https://www.linkedin.com/in/shivamsarang/) · [GitHub](https://github.com/ShivamSrng) |
+| Name | Links |
+|---|---|
+| **Adish Padalia** | [LinkedIn](https://www.linkedin.com/in/adish-padalia-a3768a230/) · [GitHub](https://github.com/AdishPadalia26) · [Portfolio](https://adish-padalia-portfolio.vercel.app/) |
+| **Devansh Goel** | [LinkedIn](https://www.linkedin.com/in/devansh-goel-5309/) · [GitHub](https://github.com/Dev-22-goel) |
+| **Udaya Raja** | [LinkedIn](https://www.linkedin.com/in/udaya-raja/) · [GitHub](https://github.com/U-daya) |
+| **Shivam Sarang** | [LinkedIn](https://www.linkedin.com/in/shivamsarang/) · [GitHub](https://github.com/ShivamSrng) |
 
 ## 🤝 Contributing
 
-- Read the [backend guide](backend/README.md), [frontend guide](frontend/README.md) and the decision records in `backend/docs/` first.
-- **Non-negotiables:** never call `complete_checkout` or `complete_spend_request`; the firewall fails closed; perception never gets tools; secrets live only in `.env`.
-- Work on a branch, open a PR, and include test output with your change.
+Fork it, and drop a ⭐ if you like it.
